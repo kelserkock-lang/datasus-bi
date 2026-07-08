@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Dados baixados / cache (não versionar — são grandes e regeneráveis)
+data/
+*.dbc
+*.dbf
+*.parquet
+
+# Arquivos temporários de teste
+_test_*.py
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Segredos
+.streamlit/secrets.toml
