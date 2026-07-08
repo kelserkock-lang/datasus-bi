@@ -1,9 +1,46 @@
 import os
 from ftplib import FTP
 import pandas as pd
-from dbctodbf.dbc_decompress import DBCDecompress
 from dbfread import DBF
 import time
+
+
+# ============================================================
+# Descompactação de arquivos .dbc (multiplataforma)
+# ------------------------------------------------------------
+# Windows: usa "dbc-to-dbf" (DBCDecompress).
+# Linux/macOS (ex.: Streamlit Cloud): usa "datasus-dbc" (wheels nativos).
+# A função tenta os backends disponíveis em ordem de preferência.
+# ============================================================
+def _decompress_dbc(dbc_path, dbf_path):
+    """Descompacta um arquivo .dbc em .dbf usando o backend disponível.
+
+    Levanta RuntimeError com orientação clara caso nenhum backend funcione.
+    """
+    errors = []
+
+    # Backend 1: datasus-dbc (multiplataforma, preferido em Linux/nuvem)
+    try:
+        import datasus_dbc
+        datasus_dbc.decompress(dbc_path, dbf_path)
+        return
+    except Exception as e:  # noqa: BLE001
+        errors.append(f"datasus-dbc: {e}")
+
+    # Backend 2: dbc-to-dbf (usado localmente no Windows)
+    try:
+        from dbctodbf.dbc_decompress import DBCDecompress
+        DBCDecompress().decompressFile(dbc_path, dbf_path)
+        return
+    except Exception as e:  # noqa: BLE001
+        errors.append(f"dbc-to-dbf: {e}")
+
+    raise RuntimeError(
+        "Não foi possível descompactar o arquivo .dbc. Instale um dos pacotes "
+        "'datasus-dbc' (recomendado) ou 'dbc-to-dbf'. Detalhes: "
+        + " | ".join(errors)
+    )
+
 
 # ============================================================
 # Catálogo completo de sistemas DataSUS disponíveis via FTP
@@ -569,8 +606,7 @@ def fetch_and_convert_dbc_preview(ftp, filename, dbf_name, n_rows=10, progress_c
         if progress_callback: progress_callback(0.5, f"Convertendo {filename} → DBF (pode demorar em bases grandes)...")
         else: print(f"Convertendo {filename} → DBF...")
         
-        dbc2dbf = DBCDecompress()
-        dbc2dbf.decompressFile(filename, dbf_name)
+        _decompress_dbc(filename, dbf_name)
         
         # Remover o DBC (não precisamos mais), mas MANTER o DBF no disco
         if os.path.exists(filename): os.remove(filename)
@@ -656,8 +692,7 @@ def fetch_and_convert_dbc(ftp, filename, dbf_name, progress_callback=None):
         if progress_callback: progress_callback(0.5, f"Convertendo {filename} para DBF...")
         else: print(f"Convertendo {filename} para DBF...")
         
-        dbc2dbf = DBCDecompress()
-        dbc2dbf.decompressFile(filename, dbf_name)
+        _decompress_dbc(filename, dbf_name)
         
         if progress_callback: progress_callback(0.8, f"Montando Datatable em Memória...")
         else: print(f"Lendo DBF ({dbf_name})...")
@@ -739,8 +774,7 @@ def fetch_and_convert_dbc_stream(ftp, filename, dbf_name, columns_to_keep=None,
                 ftp.retrbinary(f"RETR {filename}", f.write)
 
             if progress_callback: progress_callback(0.5, f"Convertendo {filename} → DBF...")
-            dbc2dbf = DBCDecompress()
-            dbc2dbf.decompressFile(filename, dbf_name)
+            _decompress_dbc(filename, dbf_name)
             if os.path.exists(filename): os.remove(filename)
 
         if progress_callback: progress_callback(0.7, "Lendo e filtrando registros (modo econômico)...")
