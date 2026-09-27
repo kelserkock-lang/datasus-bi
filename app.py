@@ -4,6 +4,7 @@ import numpy as np
 import time
 import os
 import re
+import json
 import requests
 
 # Configuração da página
@@ -73,6 +74,38 @@ from patient_linkage import (
 # --- CABEÇALHO ---
 st.title("📊 Painel de BI Avançado — MicroDataSUS")
 st.markdown("Plataforma para exploração, cruzamento e download de dados públicos de saúde do Brasil.")
+
+# Contador de acessos: persistido em disco, conta 1x por sessão de navegador
+# (não a cada rerun do Streamlit, que acontece a cada clique/filtro).
+_CONTADOR_PATH = os.path.join("data", "access_counter.json")
+
+
+def _registrar_acesso():
+    os.makedirs(os.path.dirname(_CONTADOR_PATH), exist_ok=True)
+    total = 0
+    if os.path.exists(_CONTADOR_PATH):
+        try:
+            with open(_CONTADOR_PATH, "r", encoding="utf-8") as f:
+                total = json.load(f).get("total", 0)
+        except Exception:
+            total = 0
+    total += 1
+    try:
+        with open(_CONTADOR_PATH, "w", encoding="utf-8") as f:
+            json.dump({"total": total}, f)
+    except Exception:
+        pass
+    return total
+
+
+if "acessos_total" not in st.session_state:
+    st.session_state["acessos_total"] = _registrar_acesso()
+
+st.caption(
+    f"👤 Responsável técnico: **Kelser de Souza Kock** &nbsp;·&nbsp; "
+    f"📧 kelserkock@yahoo.com.br &nbsp;·&nbsp; "
+    f"👁️ Acessos: **{st.session_state['acessos_total']}**"
+)
 st.markdown("---")
 
 # ================================================================
