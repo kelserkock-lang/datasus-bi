@@ -106,6 +106,15 @@ st.caption(
     f"📧 kelserkock@yahoo.com.br &nbsp;·&nbsp; "
     f"👁️ Acessos: **{st.session_state['acessos_total']}**"
 )
+
+with st.expander("📖 Documentação / Como usar"):
+    _readme_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "README.md")
+    try:
+        with open(_readme_path, "r", encoding="utf-8") as f:
+            st.markdown(f.read())
+    except Exception:
+        st.info("Documentação (README.md) não encontrada neste ambiente.")
+
 st.markdown("---")
 
 # ================================================================
