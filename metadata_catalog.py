@@ -462,25 +462,37 @@ METADATA_CATALOG = {
 
     # ================================================================
     # PNI - Programa Nacional de Imunizações
+    #   ATENÇÃO: os arquivos disponíveis no FTP (`DPNI{uf}{aa}.DBF` e
+    #   `CPNI{uf}{aa}.DBF`) são AGREGADOS por município/faixa/imunobiológico —
+    #   NÃO são registros individuais de vacinação (o dicionário anterior aqui
+    #   descrevia outro esquema, que não corresponde ao que é baixável).
+    #   Cobertura verificada: 1994–1999 e 2000–2019.
+    #   Schema verificado lendo os próprios arquivos.
     # ================================================================
     "PNI": {
-        "DT_ATEND":   {"type": "C(8)",  "desc": "Data de atendimento (ddmmaaaa)"},
-        "ID_PACIENTE": {"type": "C(15)", "desc": "Identificador do paciente (CNS)"},
-        "CO_UF":      {"type": "C(2)",  "desc": "UF de atendimento"},
-        "CO_MUN_ATD": {"type": "C(6)",  "desc": "Código IBGE do município de atendimento"},
-        "CO_MUN_RES": {"type": "C(6)",  "desc": "Código IBGE do município de residência"},
-        "CO_CNES":    {"type": "C(7)",  "desc": "Código CNES da unidade"},
-        "NU_LOTE":    {"type": "C(10)", "desc": "Número do lote da vacina"},
-        "CO_IMUNO":   {"type": "C(5)",  "desc": "Código do imunobiológico"},
-        "DS_IMUNO":   {"type": "C(50)", "desc": "Descrição do imunobiológico"},
-        "NU_DOSE":    {"type": "C(2)",  "desc": "Número da dose (1,2,3,R=Reforço)"},
-        "CO_LABORAT": {"type": "C(4)",  "desc": "Código do laboratório produtor"},
-        "DT_NASC":    {"type": "C(8)",  "desc": "Data de nascimento (ddmmaaaa)"},
-        "NU_IDADE":   {"type": "N(3)",  "desc": "Idade do paciente"},
-        "CS_SEXO":    {"type": "C(1)",  "desc": "Sexo: M=Masc, F=Fem"},
-        "CS_RACA":    {"type": "N(1)",  "desc": "Raça/Cor: 1=Branca, 2=Preta, 3=Amarela, 4=Parda, 5=Indígena"},
-        "SISTEMA":    {"type": "C(5)",  "desc": "Sistema de origem"},
-        "COMPET":     {"type": "C(6)",  "desc": "Competência (aaaamm)"},
+        "ANO":        {"type": "C(4)", "desc": "Ano de referência"},
+        "ANOMES":     {"type": "C(6)", "desc": "Ano/mês de referência (aaaamm)"},
+        "MES":        {"type": "C(2)", "desc": "Mês de referência"},
+        "UF":         {"type": "C(2)", "desc": "Código IBGE da UF (ex.: 42=SC)"},
+        "MUNIC":      {"type": "C(7)", "desc": "Código IBGE do município"},
+        "FX_ETARIA":  {"type": "C(2)", "desc": "Faixa etária (código)"},
+        "IMUNO":      {"type": "C(2)", "desc": "Código do imunobiológico"},
+        "DOSE":       {"type": "C(2)", "desc": "Número da dose"},
+        "QT_DOSE":    {"type": "C(7)", "desc": "Quantidade de doses aplicadas"},
+        "DOSE1":      {"type": "C(7)", "desc": "Doses (campo complementar)"},
+        "DOSEN":      {"type": "C(7)", "desc": "Doses (campo complementar)"},
+        "DIFER":      {"type": "C(7)", "desc": "Diferença (campo complementar)"},
+    },
+    "PNI-COB": {
+        "ANO":        {"type": "C(4)", "desc": "Ano de referência"},
+        "UF":         {"type": "C(2)", "desc": "Código IBGE da UF (ex.: 42=SC)"},
+        "MUNIC":      {"type": "C(7)", "desc": "Código IBGE do município"},
+        "FX_ETARIA":  {"type": "C(2)", "desc": "Faixa etária (código — ausente em anos recentes)"},
+        "IMUNO":      {"type": "C(3)", "desc": "Código do imunobiológico"},
+        "DOSE":       {"type": "C(2)", "desc": "Número da dose (ausente em anos recentes)"},
+        "QT_DOSE":    {"type": "C(7)", "desc": "Quantidade de doses aplicadas"},
+        "POP":        {"type": "C(9)", "desc": "População alvo da faixa etária"},
+        "COBERT":     {"type": "C(7)", "desc": "Cobertura vacinal (%)"},
     },
 }
 

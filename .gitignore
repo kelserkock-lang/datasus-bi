@@ -12,6 +12,13 @@ data/
 *.dbf
 *.parquet
 
+# Saídas geradas localmente pela CLI
+saidas_cli/
+
+# Saídas geradas pelo módulo custo_efetividade (planilhas, gráficos, relatórios)
+custo_efetividade/saida/
+custo_efetividade/data/
+
 # Arquivos temporários de teste
 _test_*.py
 

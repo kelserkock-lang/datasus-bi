@@ -7,7 +7,7 @@ import re
 import requests
 
 # Configuração da página
-st.set_page_config(page_title="DataSUS BI Pro", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="DataSUS BI Pro", layout="wide", initial_sidebar_state="collapsed")
 
 # --- CSS Customizado ---
 st.markdown("""
@@ -25,8 +25,6 @@ st.markdown("""
     div[data-testid="metric-container"] { background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%); border: 1px solid #d0dff5; padding: 18px 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(13, 71, 161, 0.06); transition: transform 0.2s ease, box-shadow 0.2s ease; }
     div[data-testid="metric-container"]:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(13, 71, 161, 0.12); }
     div[data-testid="stExpander"] { background-color: #ffffff; border: 1px solid #e3e8f0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-    section[data-testid="stSidebar"] { background: linear-gradient(180deg, #0d47a1 0%, #1565c0 40%, #1976d2 100%); }
-    section[data-testid="stSidebar"] .stMarkdown, section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] .stSelectbox label, section[data-testid="stSidebar"] h2 { color: #ffffff !important; }
     .stButton > button[kind="primary"] { background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%); border: none; border-radius: 10px; font-weight: 600; letter-spacing: 0.3px; padding: 0.6rem 1.2rem; transition: all 0.3s ease; }
     .stButton > button[kind="primary"]:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(13, 71, 161, 0.3); }
     .stDataFrame { border-radius: 10px; overflow: hidden; }
@@ -47,6 +45,7 @@ from data_ingestion import (
     SYSTEM_FAMILIES,
     load_full_datasus,
     check_system_resources,
+    REGIOES_BR,
 )
 from metadata_catalog import (
     get_metadata_for_system, 
@@ -76,68 +75,129 @@ st.title("📊 Painel de BI Avançado — MicroDataSUS")
 st.markdown("Plataforma para exploração, cruzamento e download de dados públicos de saúde do Brasil.")
 st.markdown("---")
 
-# --- SIDEBAR ---
-st.sidebar.header("🎯 Parâmetros de Busca")
+# ================================================================
+# PAINEL DE BUSCA — horizontal, com checkboxes
+# ================================================================
+
+UFS_BR = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG",
+          "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR",
+          "RS", "SC", "SE", "SP", "TO"]
+
+# Callbacks dos botões "Marcar todas"/"Limpar". Precisam ser callbacks (e não
+# atribuição direta) porque alterar a chave de um widget DEPOIS de criá-lo
+# dispara erro no Streamlit — no callback a mudança acontece antes do rerun.
+def _marcar_todas_ufs(valor):
+    for _u in UFS_BR:
+        st.session_state[f"uf_chk_{_u}"] = valor
+
+
+def _marcar_todas_ufs_da_lista(ufs, valor):
+    """Marca/desmarca só as UFs de uma região — usado nos botões de região."""
+    for _u in ufs:
+        st.session_state[f"uf_chk_{_u}"] = valor
+
+
+def _marcar_todas_bases(codes, valor):
+    for _c in codes:
+        st.session_state[f"base_chk_{_c}"] = valor
+
+
+st.markdown("### 🎯 Parâmetros de Busca")
 
 categories = get_systems_by_category()
 
-st.sidebar.markdown("##### 📁 Bases de Dados")
-
-# Passo 1 — família principal (SIM, SINASC, SIH, SIA, CNES, SINAN...)
+# --- 1) Família de dados -------------------------------------------------
+st.markdown("**1️⃣ Família de dados**")
 familias = get_systems_by_family()
 fam_keys = list(familias.keys())
-fam_display = [
-    f"{SYSTEM_FAMILIES[f]['icone']} {SYSTEM_FAMILIES[f]['nome']} ({len(familias[f])})"
-    if f in SYSTEM_FAMILIES else f"{f} ({len(familias[f])})"
-    for f in fam_keys
-]
 
-fam_sel_display = st.sidebar.multiselect(
-    "1️⃣ Família de dados",
-    options=fam_display,
-    default=[],
-    help="Comece pelo sistema principal. Depois escolha as bases específicas dele.",
-)
-fam_sel_keys = [fam_keys[fam_display.index(d)] for d in fam_sel_display]
+_fam_cols = st.columns(len(fam_keys))
+fam_sel_keys = []
+for _i, _fk in enumerate(fam_keys):
+    _meta = SYSTEM_FAMILIES.get(_fk, {})
+    _rotulo = f"{_meta.get('icone', '')} {_fk}".strip()
+    with _fam_cols[_i]:
+        if st.checkbox(
+            _rotulo,
+            key=f"fam_chk_{_fk}",
+            help=f"{_meta.get('nome', _fk)} — {len(familias[_fk])} base(s)",
+        ):
+            fam_sel_keys.append(_fk)
 
-# Passo 2 — bases específicas dentro das famílias escolhidas
+# --- 2) Bases específicas ------------------------------------------------
+st.markdown("**2️⃣ Base(s) de dados**")
 sistemas_selecionados = []
 if fam_sel_keys:
-    base_display, base_codes = [], []
-    for fk in fam_sel_keys:
-        for code, label in familias[fk]:
-            base_display.append(label)
-            base_codes.append(code)
+    _bases = [(code, label) for fk in fam_sel_keys for code, label in familias[fk]]
+    _ncols = min(4, len(_bases))
+    _base_cols = st.columns(_ncols)
+    for _i, (_code, _label) in enumerate(_bases):
+        with _base_cols[_i % _ncols]:
+            _tipo = "mensal" if SYSTEMS_CATALOG[_code]["type"] == "monthly" else "anual"
+            if st.checkbox(
+                _label, key=f"base_chk_{_code}", help=f"{_code} · dados {_tipo}",
+            ):
+                sistemas_selecionados.append(_code)
 
-    bases_sel_display = st.sidebar.multiselect(
-        "2️⃣ Base(s) específica(s)",
-        options=base_display,
-        default=base_display if len(base_display) == 1 else [],
-        help="Selecione uma ou mais bases dentro das famílias escolhidas.",
-    )
-    for d in bases_sel_display:
-        sistemas_selecionados.append(base_codes[base_display.index(d)])
+    _bcol1, _bcol2, _ = st.columns([1, 1, 6])
+    with _bcol1:
+        st.button("Marcar todas", key="bases_all", width='stretch',
+                  on_click=_marcar_todas_bases, args=([c for c, _ in _bases], True))
+    with _bcol2:
+        st.button("Limpar", key="bases_none", width='stretch',
+                  on_click=_marcar_todas_bases, args=([c for c, _ in _bases], False))
 else:
-    st.sidebar.caption("👆 Escolha uma família para ver as bases disponíveis.")
+    st.caption("☝️ Marque uma ou mais famílias acima para ver as bases disponíveis.")
 
-st.sidebar.markdown("---")
+st.divider()
 
-uf = st.sidebar.selectbox(
-    "Estado (UF)", 
-    ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", 
-     "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"]
-)
+# --- 3) Estado (UF) — checkboxes em grade ---------------------------------
+st.markdown("**3️⃣ Região e Estado (UF)** — marque quantos quiser")
 
-st.sidebar.markdown("##### 📅 Período de Coleta")
-col_ano1, col_ano2 = st.sidebar.columns(2)
-ano_inicio = col_ano1.number_input("Ano Início", min_value=1996, max_value=2025, value=2010, step=1)
-ano_fim = col_ano2.number_input("Ano Fim", min_value=1996, max_value=2025, value=2020, step=1)
+_rcols = st.columns(len(REGIOES_BR) + 1)
+for _i, (_regiao, _ufs_regiao) in enumerate(REGIOES_BR.items()):
+    with _rcols[_i]:
+        st.button(
+            f"📍 {_regiao}", key=f"reg_btn_{_regiao}", width='stretch',
+            help=f"Marca de uma vez: {', '.join(_ufs_regiao)}",
+            on_click=_marcar_todas_ufs_da_lista, args=(_ufs_regiao, True),
+        )
+with _rcols[-1]:
+    st.button("🇧🇷 Brasil inteiro", key="reg_btn_brasil", width='stretch',
+              on_click=_marcar_todas_ufs, args=(True,))
 
-if ano_fim < ano_inicio:
-    st.sidebar.error("⚠️ O Ano Fim deve ser ≥ Ano Início.")
-    ano_fim = ano_inicio
+_uf_cols = st.columns(9)
+ufs_selecionadas = []
+for _i, _u in enumerate(UFS_BR):
+    with _uf_cols[_i % 9]:
+        if st.checkbox(_u, key=f"uf_chk_{_u}"):
+            ufs_selecionadas.append(_u)
 
-mes = st.sidebar.selectbox("Mês", ["Todos", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"])
+_ucol1, _ucol2, _ucol3 = st.columns([1, 1, 5])
+with _ucol1:
+    st.button("Marcar todas", key="ufs_all", width='stretch',
+              on_click=_marcar_todas_ufs, args=(True,))
+with _ucol2:
+    st.button("Limpar", key="ufs_none", width='stretch',
+              on_click=_marcar_todas_ufs, args=(False,))
+with _ucol3:
+    if ufs_selecionadas:
+        _regioes_presentes = sorted({
+            _regiao for _u in ufs_selecionadas
+            for _regiao, _ufs_regiao in REGIOES_BR.items() if _u in _ufs_regiao
+        })
+        st.caption(
+            f"✅ {len(ufs_selecionadas)} estado(s): {', '.join(ufs_selecionadas)} "
+            f"— região(ões): {', '.join(_regioes_presentes)}"
+        )
+    else:
+        st.caption("⚠️ Selecione ao menos um estado (ou clique numa região) para continuar.")
+
+st.divider()
+
+# --- 4) Período e localidade ---------------------------------------------
+st.markdown("**4️⃣ Período e localidade**")
+
 
 # --- IBGE ---
 @st.cache_data(ttl=86400)
@@ -151,34 +211,76 @@ def get_municipios_ibge(sigla_uf):
     except: pass
     return []
 
-lista_municipios_ativos = get_municipios_ibge(uf)
-opcoes_mun = ["Todos (Estado Completo)"] + [m["nome"] for m in lista_municipios_ativos]
-municipio_selecionado = st.sidebar.selectbox("Município (Filtro Inteligente)", opcoes_mun,
-    help="Deixe em 'Todos' para o estado inteiro. Cidade reduz memória.")
 
-codigo_municipio = ""
-if municipio_selecionado != "Todos (Estado Completo)":
-    codigo_municipio = municipio_selecionado.split(" - ")[0]
+_pcol1, _pcol2, _pcol3, _pcol4 = st.columns([1, 1, 1, 3])
+ano_inicio = _pcol1.number_input("Ano Início", min_value=1996, max_value=2025, value=2010, step=1)
+ano_fim = _pcol2.number_input("Ano Fim", min_value=1996, max_value=2025, value=2020, step=1)
+mes = _pcol3.selectbox("Mês",
+                       ["Todos", "01", "02", "03", "04", "05", "06",
+                        "07", "08", "09", "10", "11", "12"],
+                       help="Vale para bases mensais (SIH, SIA, CNES, CIHA).")
 
-st.sidebar.markdown("---")
+if ano_fim < ano_inicio:
+    st.error("⚠️ O Ano Fim deve ser ≥ Ano Início — ajustando para o valor inicial.")
+    ano_fim = ano_inicio
 
-# --- Filtro por CID-10 / Morbidade ---
-st.sidebar.markdown("##### 🩺 Filtro por CID-10 / Morbidade")
-with st.sidebar.expander("Selecionar CIDs e morbidades", expanded=False):
+# Município(s) (opcional) — funciona com 1 ou várias UFs selecionadas (análise
+# multi-estado/região). Cada opção é rotulada com a UF para não confundir
+# municípios de nomes iguais em estados diferentes.
+codigo_municipio = []
+if not ufs_selecionadas:
+    with _pcol4:
+        st.selectbox("Município (opcional)", ["— selecione ao menos um estado —"],
+                     disabled=True, key="mun_indisponivel")
+else:
+    _buscar_mun = True
+    if len(ufs_selecionadas) > 6:
+        with _pcol4:
+            _buscar_mun = st.checkbox(
+                f"Carregar municípios das {len(ufs_selecionadas)} UFs selecionadas",
+                value=False, key="mun_carregar_muitas",
+                help="Com muitos estados a busca de municípios no IBGE demora mais — "
+                     "marque só se precisar filtrar por cidade.",
+            )
+    if _buscar_mun:
+        opcoes_mun, mapa_mun = ["Todos (Estado[s] Completo[s])"], {}
+        for _uf in ufs_selecionadas:
+            for m in get_municipios_ibge(_uf):
+                rotulo = f"{_uf} · {m['nome']}"
+                opcoes_mun.append(rotulo)
+                mapa_mun[rotulo] = m["id"]
+        with _pcol4:
+            municipios_selecionados = st.multiselect(
+                "Município(s) (opcional)", opcoes_mun[1:],
+                help="Deixe vazio para trazer o(s) estado(s) inteiro(s). "
+                     "Escolha uma ou mais cidades (de qualquer UF marcada acima) para reduzir o volume.",
+            )
+        codigo_municipio = [mapa_mun[m] for m in municipios_selecionados]
+    else:
+        with _pcol4:
+            st.caption("🏙️ Filtro por município desabilitado para esta seleção (ver caixa acima).")
+
+st.divider()
+
+
+# --- 5) Filtro por CID-10 / Morbidade ------------------------------------
+with st.expander("🩺 **5️⃣ Filtrar por CID-10 / morbidade** (opcional)", expanded=False):
     st.caption("Aplicado às bases com diagnóstico (SIM, SIH, SIA, CIHA, SINAN, SINASC). "
                "Deixe vazio para trazer todos os registros.")
 
-    cap_options = [f'{c["cap"]} — {c["titulo"]}' for c in CID10_CHAPTERS]
-    sel_caps_display = st.multiselect(
-        "Capítulos CID-10", cap_options, default=[],
-        help="Filtra por grandes grupos de doenças (faixas de códigos)."
-    )
+    _cid_col1, _cid_col2 = st.columns(2)
+    with _cid_col1:
+        cap_options = [f'{c["cap"]} — {c["titulo"]}' for c in CID10_CHAPTERS]
+        sel_caps_display = st.multiselect(
+            "Capítulos CID-10", cap_options, default=[],
+            help="Filtra por grandes grupos de doenças (faixas de códigos)."
+        )
+    with _cid_col2:
+        sel_morb = st.multiselect(
+            "Morbidades comuns", sorted(MORBIDITIES.keys()), default=[],
+            help="Grupos de CIDs pré-mapeados para doenças frequentes."
+        )
     sel_caps = [CID10_CHAPTERS[cap_options.index(d)]["cap"] for d in sel_caps_display]
-
-    sel_morb = st.multiselect(
-        "Morbidades comuns", sorted(MORBIDITIES.keys()), default=[],
-        help="Grupos de CIDs pré-mapeados para doenças frequentes."
-    )
 
     # --- Seleção de CIDs específicos (código + nome da doença) ---
     st.markdown("**CIDs específicos (código + doença)**")
@@ -190,10 +292,16 @@ with st.sidebar.expander("Selecionar CIDs e morbidades", expanded=False):
     )
     _sel_prev = st.session_state.get('cid_especificos_sel', [])
     if cid_busca and cid_busca.strip():
-        _resultados = search_cid10(cid_busca, limit=500)
+        _limit = 1500
+        _resultados = search_cid10(cid_busca, limit=_limit)
         _opcoes_cid = [cid10_label(c, n) for c, n in _resultados]
         if not _opcoes_cid:
             st.caption("Nenhum CID encontrado para essa busca.")
+        elif len(_resultados) >= _limit:
+            st.caption(
+                f"⚠️ Mostrando os primeiros {_limit} resultados. "
+                "Refine a busca (mais letras) para ver CIDs de outras faixas."
+            )
     else:
         _opcoes_cid = []
         st.caption("🔎 Digite acima (nome da doença ou código) para listar os CIDs.")
@@ -218,51 +326,90 @@ with st.sidebar.expander("Selecionar CIDs e morbidades", expanded=False):
 
 cid_filter_ui = build_cid_filter(sel_caps, sel_morb, custom_codes)
 if cid_filter_ui["active"]:
-    st.sidebar.caption(
-        f"🩺 Filtro CID ativo: {len(cid_filter_ui['ranges'])} capítulo(s) + "
-        f"{len(cid_filter_ui['prefixes'])} código(s)/prefixo(s)"
+    st.success(
+        f"🩺 Filtro CID ativo: **{len(cid_filter_ui['ranges'])}** capítulo(s) + "
+        f"**{len(cid_filter_ui['prefixes'])}** código(s)/prefixo(s)"
     )
 
-st.sidebar.markdown("---")
+st.divider()
 
-# --- Modo econômico de memória (big data) ---
-st.sidebar.markdown("##### 🧠 Modo Econômico de Memória")
-memory_efficient_ui = st.sidebar.toggle(
-    "Filtrar durante a leitura (streaming)",
-    value=False,
-    help="Recomendado para bases grandes (SIH, SIA, estado inteiro). Aplica os filtros de "
-         "município e CID e seleciona as colunas ENQUANTO lê o arquivo, sem carregar a base "
-         "inteira na RAM. O cache gerado é específico para os filtros/colunas escolhidos."
-)
-if memory_efficient_ui:
-    st.sidebar.caption("🧠 Streaming ativo — menor uso de RAM.")
+# --- 6) Memória do motor -------------------------------------------------
+# A leitura é SEMPRE em lotes + Parquet (motor DuckDB), então o antigo
+# "modo econômico" virou desnecessário. O que importa ajustar é o teto de RAM
+# do DuckDB e o tamanho do lote da ingestão.
+st.markdown("**6️⃣ Memória do motor** *(relevante só em bases muito grandes)*")
 
-st.sidebar.markdown("---")
-
-# --- Recursos do PC ---
-st.sidebar.markdown("##### 💻 Recursos do Sistema")
+_RAM_MEM_OPCOES = ["512 MB", "1 GB", "2 GB", "4 GB", "8 GB"]
+_RAM_MEM_BYTES = {
+    "512 MB": 512 * 1024**2, "1 GB": 1024**3,
+    "2 GB": 2 * 1024**3, "4 GB": 4 * 1024**3, "8 GB": 8 * 1024**3,
+}
 sys_resources = check_system_resources()
-if sys_resources["ram_total_gb"] > 0:
-    pct = sys_resources["ram_percent_used"]
-    avail = sys_resources["ram_available_gb"]
-    total = sys_resources["ram_total_gb"]
-    if pct < 60:
-        st.sidebar.markdown(f'<p class="mem-ok">✅ RAM: {avail}GB livres de {total}GB ({pct}% em uso)</p>', unsafe_allow_html=True)
-    elif pct < 80:
-        st.sidebar.markdown(f'<p class="mem-warn">⚠️ RAM: {avail}GB livres de {total}GB ({pct}% em uso)</p>', unsafe_allow_html=True)
-    else:
-        st.sidebar.markdown(f'<p class="mem-danger">🔴 RAM: {avail}GB livres de {total}GB ({pct}% em uso)</p>', unsafe_allow_html=True)
-else:
-    st.sidebar.caption("⚠️ Instale `psutil` para monitorar memória")
+_ram_livre_gb = sys_resources.get("ram_available_gb", -1)
 
-st.sidebar.markdown("---")
-st.sidebar.markdown(
-    '<div class="phase-info">'
-    '🔍 <b>Fase 1:</b> Estrutura instantânea (sem download)<br>'
-    '📥 <b>Fase 2:</b> Download completo após seleção'
-    '</div>', unsafe_allow_html=True
-)
-carregar_estrutura = st.sidebar.button("⚡ Ver Estrutura dos Dados", type="primary", width='stretch')
+# Sugerir ~50% da RAM livre como teto do DuckDB.
+if _ram_livre_gb and _ram_livre_gb > 0:
+    _alvo_bytes = _ram_livre_gb * 1024**3 * 0.5
+    _cabe = [i for i, k in enumerate(_RAM_MEM_OPCOES) if _RAM_MEM_BYTES[k] <= _alvo_bytes]
+    _mem_idx_default = _cabe[-1] if _cabe else 0
+else:
+    _mem_idx_default = 1  # 1 GB
+
+# O lote é o que controla o PICO de memória ao ler os .dbc.
+_LOTE_OPCOES = [5_000, 10_000, 25_000, 50_000, 100_000, 200_000]
+_lote_default = 10_000 if (_ram_livre_gb and 0 < _ram_livre_gb < 4) else 50_000
+
+_mem_col1, _mem_col2, _mem_col3 = st.columns([1, 1, 2])
+with _mem_col1:
+    memory_limit_ui = st.selectbox(
+        "Teto de RAM do motor",
+        _RAM_MEM_OPCOES,
+        index=_mem_idx_default,
+        help="Limite de memória do DuckDB. Ao atingir, ele passa a usar disco (spill) "
+             "em vez de estourar a RAM. Reduza se o PC tiver pouca memória.",
+    )
+with _mem_col2:
+    batch_size_ui = st.select_slider(
+        "Lote da ingestão (registros)",
+        options=_LOTE_OPCOES,
+        value=_lote_default,
+        format_func=lambda v: f"{v:,}".replace(",", "."),
+        help="Quantos registros são processados por vez ao converter .dbc -> Parquet. "
+             "É este o parâmetro que controla o PICO de memória. Reduza para 10.000 "
+             "(ou 5.000) se o PC tiver pouca RAM.",
+    )
+with _mem_col3:
+    if sys_resources["ram_total_gb"] > 0:
+        pct = sys_resources["ram_percent_used"]
+        avail = sys_resources["ram_available_gb"]
+        total = sys_resources["ram_total_gb"]
+        if pct < 60:
+            st.markdown(f'<p class="mem-ok">✅ RAM: {avail}GB livres de {total}GB ({pct}% em uso)</p>', unsafe_allow_html=True)
+        elif pct < 80:
+            st.markdown(f'<p class="mem-warn">⚠️ RAM: {avail}GB livres de {total}GB ({pct}% em uso)</p>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<p class="mem-danger">🔴 RAM: {avail}GB livres de {total}GB ({pct}% em uso)</p>', unsafe_allow_html=True)
+        st.caption("✅ Leitura sempre em lotes + Parquet — nenhuma base inteira fica na RAM.")
+    else:
+        st.caption("⚠️ Instale `psutil` para monitorar memória")
+
+st.divider()
+
+# --- Fase 1: botão de busca ----------------------------------------------
+_fase_col1, _fase_col2 = st.columns([2, 3])
+with _fase_col1:
+    carregar_estrutura = st.button(
+        "⚡ Ver Estrutura dos Dados", type="primary", width='stretch',
+        help="Fase 1: lê os metadados (sem baixar do FTP) para você escolher as variáveis.",
+    )
+with _fase_col2:
+    st.markdown(
+        '<div class="phase-info">'
+        '🔍 <b>Fase 1:</b> estrutura instantânea (sem download) &nbsp;·&nbsp; '
+        '📥 <b>Fase 2:</b> download completo após escolher as variáveis'
+        '</div>', unsafe_allow_html=True
+    )
+
 
 
 # ================================================================
@@ -291,17 +438,20 @@ if carregar_estrutura and len(sistemas_selecionados) > 0:
     
     if previews:
         st.session_state['previews'] = previews
-        st.session_state['uf_carregada'] = uf
+        st.session_state['ufs_carregadas'] = list(ufs_selecionadas)
         st.session_state['periodo_carregado'] = periodo_label
         st.session_state['mes_carregado'] = mes
         st.session_state['municipio_carregado'] = codigo_municipio
         st.session_state['cid_filter_carregado'] = cid_filter_ui
-        st.session_state['memory_efficient_carregado'] = memory_efficient_ui
+        st.session_state['memory_limit_carregado'] = memory_limit_ui
+        st.session_state['batch_size_carregado'] = batch_size_ui
         if 'df_join_result' in st.session_state:
             del st.session_state['df_join_result']
 
 elif carregar_estrutura and len(sistemas_selecionados) == 0:
-    st.warning("👈 Selecione pelo menos uma base de dados na barra lateral.")
+    st.warning("☝️ Selecione pelo menos uma base de dados no painel acima.")
+elif carregar_estrutura and not ufs_selecionadas:
+    st.warning("⚠️ Selecione pelo menos um estado (UF) no painel acima.")
 
 
 # ================================================================
@@ -659,8 +809,9 @@ if 'previews' in st.session_state and st.session_state['previews']:
         st.markdown(
             '<div class="phase-info">'
             '📡 <b>Aqui os dados serão baixados do FTP do DataSUS</b>. '
-            'Somente as variáveis selecionadas serão mantidas em memória. '
-            'O cache Parquet será salvo para reutilização futura.'
+            'A leitura é feita em <b>lotes</b> e gravada em <b>Parquet</b>, então '
+            'nenhuma base inteira fica na RAM. Só as variáveis selecionadas voltam '
+            'para a tela. O Parquet fica em <code>data/staging/</code> para reuso.'
             '</div>', unsafe_allow_html=True
         )
         
@@ -697,14 +848,15 @@ if 'previews' in st.session_state and st.session_state['previews']:
                     try:
                         df_full = load_full_datasus(
                             system_code=sys_code,
-                            uf=st.session_state.get('uf_carregada', 'AC'),
+                            uf=st.session_state.get('ufs_carregadas', ['SC']),
                             year_start=ano_inicio,
                             year_end=ano_fim,
                             month=st.session_state.get('mes_carregado', 'Todos'),
                             city_code=st.session_state.get('municipio_carregado', ''),
                             columns_to_keep=selected_vars,
                             cid_filter=st.session_state.get('cid_filter_carregado'),
-                            memory_efficient=st.session_state.get('memory_efficient_carregado', False),
+                            memory_limit=st.session_state.get('memory_limit_carregado', '1 GB'),
+                            batch_size=st.session_state.get('batch_size_carregado', 50_000),
                             progress_callback=dl_progress,
                         )
                         
@@ -718,7 +870,7 @@ if 'previews' in st.session_state and st.session_state['previews']:
                             st.download_button(
                                 label=f"💾 Salvar CSV ({len(df_full):,} linhas)".replace(",", "."),
                                 data=csv_data,
-                                file_name=f"DataSUS_{sys_code}_{st.session_state.get('uf_carregada', '')}_{st.session_state.get('periodo_carregado', '')}.csv",
+                                file_name=f"DataSUS_{sys_code}_{'-'.join(st.session_state.get('ufs_carregadas', []))}_{st.session_state.get('periodo_carregado', '')}.csv",
                                 mime='text/csv',
                                 key=f"csv_dl_{sys_code}"
                             )
@@ -772,13 +924,14 @@ if 'previews' in st.session_state and st.session_state['previews']:
                     
                     df1_full = load_full_datasus(
                         system_code=jc['base1'],
-                        uf=st.session_state.get('uf_carregada', 'AC'),
+                        uf=st.session_state.get('ufs_carregadas', ['SC']),
                         year_start=ano_inicio, year_end=ano_fim,
                         month=st.session_state.get('mes_carregado', 'Todos'),
                         city_code=st.session_state.get('municipio_carregado', ''),
                         columns_to_keep=vars1_with_key,
                         cid_filter=st.session_state.get('cid_filter_carregado'),
-                        memory_efficient=st.session_state.get('memory_efficient_carregado', False),
+                        memory_limit=st.session_state.get('memory_limit_carregado', '1 GB'),
+                        batch_size=st.session_state.get('batch_size_carregado', 50_000),
                         progress_callback=prog1,
                     )
                     
@@ -791,13 +944,14 @@ if 'previews' in st.session_state and st.session_state['previews']:
                     
                     df2_full = load_full_datasus(
                         system_code=jc['base2'],
-                        uf=st.session_state.get('uf_carregada', 'AC'),
+                        uf=st.session_state.get('ufs_carregadas', ['SC']),
                         year_start=ano_inicio, year_end=ano_fim,
                         month=st.session_state.get('mes_carregado', 'Todos'),
                         city_code=st.session_state.get('municipio_carregado', ''),
                         columns_to_keep=vars2_with_key,
                         cid_filter=st.session_state.get('cid_filter_carregado'),
-                        memory_efficient=st.session_state.get('memory_efficient_carregado', False),
+                        memory_limit=st.session_state.get('memory_limit_carregado', '1 GB'),
+                        batch_size=st.session_state.get('batch_size_carregado', 50_000),
                         progress_callback=prog2,
                     )
                     
@@ -888,7 +1042,7 @@ if 'previews' in st.session_state and st.session_state['previews']:
                             st.download_button(
                                 label=f"💾 Salvar Join CSV ({len(df_export):,} linhas)".replace(",", "."),
                                 data=csv_join,
-                                file_name=f"DataSUS_Join_{jc['base1']}_{jc['base2']}_{st.session_state.get('uf_carregada', '')}_{st.session_state.get('periodo_carregado', '')}.csv",
+                                file_name=f"DataSUS_Join_{jc['base1']}_{jc['base2']}_{'-'.join(st.session_state.get('ufs_carregadas', []))}_{st.session_state.get('periodo_carregado', '')}.csv",
                                 mime='text/csv',
                                 key="dl_join_csv"
                             )
@@ -906,7 +1060,7 @@ if 'previews' in st.session_state and st.session_state['previews']:
 
 else:
     # --- LANDING PAGE ---
-    st.info("👈 Selecione as bases, localidade e período na barra lateral e clique em **Ver Estrutura dos Dados**.")
+    st.info("☝️ Selecione as bases, o estado e o período no painel acima e clique em **Ver Estrutura dos Dados**.")
     
     st.markdown("### 🏗️ Fluxo de Trabalho em 2 Fases")
     
@@ -924,7 +1078,7 @@ else:
         #### 📥 Fase 2 — Download Completo
         - Carrega a base inteira **somente com as colunas selecionadas**
         - Executa Joins com dados reais
-        - Salva cache Parquet para reutilização futura
+        - Leitura em **lotes** + **Parquet** (memória controlada)
         - Exporta CSV para download
         """)
     
@@ -934,9 +1088,9 @@ else:
     with col_feat1:
         st.markdown("#### 📡 Ingestão Direta\nExtrai **DBCs oficiais** do FTP do DataSUS, converte para DBF em Python puro.")
     with col_feat2:
-        st.markdown("#### ⚡ Cache Inteligente\nDados são salvos em **Parquet** para carregamento instantâneo futuro.")
+        st.markdown("#### ⚡ Motor Parquet + DuckDB\nDados são gravados em **Parquet** e consultados pelo DuckDB, com teto de RAM e spill em disco.")
     with col_feat3:
-        st.markdown("#### 💾 Gestão de Memória\nMonitoramento de RAM e carregamento seletivo de colunas.")
+        st.markdown("#### 💾 Memória Controlada\nIngestão em **lotes**, sem carregar a base inteira. Teto de RAM e lote ajustáveis no painel de busca.")
     
     st.markdown("---")
     st.markdown("### 📚 Bases de Dados Disponíveis")

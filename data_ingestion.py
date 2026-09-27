@@ -57,8 +57,11 @@ SYSTEMS_CATALOG = {
     },
     "SINASC": {
         "label": "SINASC (Nascidos Vivos)",
-        "ftp_path": "/dissemin/publicos/SINASC/NOVOS/DNRES/",
-        "file_pattern": "DN{uf}{year}.dbc",
+        # VERIFICADO no FTP: `NOVOS/DNRES` não existe. O diretório correto
+        # `1996_/Dados/DNRES/` tem mais anos disponíveis (SC até 2024) do que
+        # `NOV/DNRES/` (SC até 2022).
+        "ftp_path": "/dissemin/publicos/SINASC/1996_/Dados/DNRES/",
+        "file_pattern": "DN{uf}{year}.dbc",  # year = 4 dígitos ou 2
         "type": "annual",
         "category": "Epidemiológico",
     },
@@ -249,250 +252,265 @@ SYSTEMS_CATALOG = {
         "category": "Estabelecimentos (CNES)",
     },
     # --- SINAN (Agravos de Notificação) - Dados Finais ---
+    # VERIFICADO no FTP: os arquivos são NACIONAIS, no formato
+    # `{AGRAVO}BR{aa}.dbc` (ex.: DENGBR17.dbc) — NÃO há recorte por UF no nome.
+    # Por isso o padrão não usa `{uf}`; o filtro de UF é aplicado sobre os
+    # dados (campos SG_UF_NOT / SG_UF) pelo datasus_engine.
+    # Cobertura: anos com 2 dígitos (ex.: 00..25).
     "SINAN-DENG": {
         "label": "SINAN - Dengue",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "DENG{uf}{year}.dbc",
+        "file_pattern": "DENGBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-CHIK": {
         "label": "SINAN - Chikungunya",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "CHIK{uf}{year}.dbc",
+        "file_pattern": "CHIKBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-ZIKA": {
         "label": "SINAN - Zika",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "ZIKA{uf}{year}.dbc",
+        "file_pattern": "ZIKABR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-LEIV": {
         "label": "SINAN - Leishmaniose Visceral",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "LEIV{uf}{year}.dbc",
+        "file_pattern": "LEIVBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-LEIT": {
         "label": "SINAN - Leishmaniose Tegumentar",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "LEIT{uf}{year}.dbc",
+        "file_pattern": "LEITBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-HANS": {
         "label": "SINAN - Hanseníase",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "HANS{uf}{year}.dbc",
+        "file_pattern": "HANSBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-TUBE": {
         "label": "SINAN - Tuberculose",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "TUBE{uf}{year}.dbc",
+        "file_pattern": "TUBEBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-MALA": {
         "label": "SINAN - Malária",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "MALA{uf}{year}.dbc",
+        "file_pattern": "MALABR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-CHAG": {
         "label": "SINAN - Chagas",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "CHAG{uf}{year}.dbc",
+        "file_pattern": "CHAGBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-RAIV": {
         "label": "SINAN - Raiva",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "RAIV{uf}{year}.dbc",
+        "file_pattern": "RAIVBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-TETA": {
         "label": "SINAN - Tétano Acidental",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "TETA{uf}{year}.dbc",
+        "file_pattern": "TETABR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-TETN": {
         "label": "SINAN - Tétano Neonatal",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "TETN{uf}{year}.dbc",
+        "file_pattern": "TETNBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-MENI": {
         "label": "SINAN - Meningite",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "MENI{uf}{year}.dbc",
+        "file_pattern": "MENIBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-COQU": {
         "label": "SINAN - Coqueluche",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "COQU{uf}{year}.dbc",
+        "file_pattern": "COQUBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-DIFT": {
         "label": "SINAN - Difteria",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "DIFT{uf}{year}.dbc",
+        "file_pattern": "DIFTBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-ESQU": {
         "label": "SINAN - Esquistossomose",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "ESQU{uf}{year}.dbc",
+        "file_pattern": "ESQUBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-FEAM": {
         "label": "SINAN - Febre Amarela",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "FEAM{uf}{year}.dbc",
+        "file_pattern": "FEAMBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-HANT": {
         "label": "SINAN - Hantavirose",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "HANT{uf}{year}.dbc",
+        "file_pattern": "HANTBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-HEPA": {
         "label": "SINAN - Hepatites Virais",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "HEPA{uf}{year}.dbc",
+        "file_pattern": "HEPABR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-LEPC": {
         "label": "SINAN - Leptospirose",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "LEPT{uf}{year}.dbc",
+        "file_pattern": "LEPTBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-PEST": {
         "label": "SINAN - Peste",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "PEST{uf}{year}.dbc",
+        "file_pattern": "PESTBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-PFAN": {
         "label": "SINAN - Paralisia Flácida Aguda",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "PFAN{uf}{year}.dbc",
+        "file_pattern": "PFANBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-ROTA": {
         "label": "SINAN - Rotavírus",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "ROTA{uf}{year}.dbc",
+        "file_pattern": "ROTABR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-SIFA": {
         "label": "SINAN - Sífilis Adquirida",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "SIFA{uf}{year}.dbc",
+        "file_pattern": "SIFABR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-SIFC": {
         "label": "SINAN - Sífilis Congênita",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "SIFC{uf}{year}.dbc",
+        "file_pattern": "SIFCBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-SIFG": {
         "label": "SINAN - Sífilis em Gestante",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "SIFG{uf}{year}.dbc",
+        "file_pattern": "SIFGBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-AIDS": {
         "label": "SINAN - AIDS",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "AIDS{uf}{year}.dbc",
+        "file_pattern": "AIDSBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-BOTI": {
         "label": "SINAN - Botulismo",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "BOTI{uf}{year}.dbc",
+        "file_pattern": "BOTIBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-CRIO": {
         "label": "SINAN - Criptococose",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "CRIO{uf}{year}.dbc",
+        "file_pattern": "CRIOBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-ACBI": {
         "label": "SINAN - Acidente de Trabalho Biológico",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "ACBI{uf}{year}.dbc",
+        "file_pattern": "ACBIBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-ACGR": {
         "label": "SINAN - Acidente de Trabalho Grave",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "ACGR{uf}{year}.dbc",
+        "file_pattern": "ACGRBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-ANIM": {
         "label": "SINAN - Acidente por Animais Peçonhentos",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "ANIM{uf}{year}.dbc",
+        "file_pattern": "ANIMBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-VIOL": {
         "label": "SINAN - Violência Doméstica/Sexual",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "VIOL{uf}{year}.dbc",
+        "file_pattern": "VIOLBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     "SINAN-IEXO": {
         "label": "SINAN - Intoxicação Exógena",
         "ftp_path": "/dissemin/publicos/SINAN/DADOS/FINAIS/",
-        "file_pattern": "IEXO{uf}{year}.dbc",
+        "file_pattern": "IEXOBR{yy}.dbc",
         "type": "annual",
         "category": "SINAN (Agravos)",
     },
     # --- PNI (Imunizações) ---
+    # VERIFICADO no FTP: os arquivos NÃO são `.dbc` mensais. São `.DBF` ANUAIS,
+    # já descompactados, por UF: `DPNI{uf}{aa}.DBF` e `CPNI{uf}{aa}.DBF`.
+    # Cobertura verificada para SC: 1994–1999 e 2000–2019.
     "PNI": {
-        "label": "PNI (Imunizações)",
+        "label": "PNI (Doses Aplicadas)",
         "ftp_path": "/dissemin/publicos/PNI/DADOS/",
-        "file_pattern": "PNI{uf}{yy}{mm}.dbc",
-        "type": "monthly",
+        "file_pattern": "DPNI{uf}{yy}.DBF",
+        "type": "annual",
+        "category": "Imunizações",
+    },
+    "PNI-COB": {
+        "label": "PNI (Cobertura Vacinal)",
+        "ftp_path": "/dissemin/publicos/PNI/DADOS/",
+        "file_pattern": "CPNI{uf}{yy}.DBF",
+        "type": "annual",
         "category": "Imunizações",
     },
 }
@@ -603,8 +621,8 @@ def fetch_and_convert_dbc_preview(ftp, filename, dbf_name, n_rows=10, progress_c
         with open(filename, 'wb') as f:
             ftp.retrbinary(f"RETR {filename}", f.write)
         
-        if progress_callback: progress_callback(0.5, f"Convertendo {filename} → DBF (pode demorar em bases grandes)...")
-        else: print(f"Convertendo {filename} → DBF...")
+        if progress_callback: progress_callback(0.5, f"Convertendo {filename} -> DBF (pode demorar em bases grandes)...")
+        else: print(f"Convertendo {filename} -> DBF...")
         
         _decompress_dbc(filename, dbf_name)
         
@@ -726,6 +744,74 @@ MUNI_FILTER_FIELDS = [
     'PA_MUNPCN', 'CO_MUN_RES',
 ]
 
+# Campos que guardam a UF dentro dos dados.
+# Usados quando o arquivo-fonte é NACIONAL (sem recorte por UF no nome do
+# arquivo — caso do SINAN, cujos arquivos são `{AGRAVO}BR{aa}.dbc`), para que a
+# seleção de UF da interface continue valendo. Ordem = preferência.
+#
+# ATENÇÃO: estes campos NÃO seguem uma convenção única. O SINAN usa o CÓDIGO
+# IBGE numérico ("42"), enquanto SIH-SP usa a SIGLA ("SC"). O filtro testa as
+# duas formas (ver `datasus_engine.build_uf_predicate`).
+UF_FILTER_FIELDS = [
+    'SG_UF_NOT',   # SINAN: UF de notificação (código IBGE)
+    'SG_UF',       # SINAN: UF de residência (código IBGE)
+    'CO_UF',       # PNI / outros (sigla)
+    'SP_UF',       # SIH-SP (sigla)
+]
+
+# Códigos IBGE das UFs, para traduzir a sigla escolhida na interface.
+UF_CODIGO_IBGE = {
+    'AC': 12, 'AL': 27, 'AM': 13, 'AP': 16, 'BA': 29, 'CE': 23,
+    'DF': 53, 'ES': 32, 'GO': 52, 'MA': 21, 'MG': 31, 'MS': 50,
+    'MT': 51, 'PA': 15, 'PB': 25, 'PE': 26, 'PI': 22, 'PR': 41,
+    'RJ': 33, 'RN': 24, 'RO': 11, 'RR': 14, 'RS': 43, 'SC': 42,
+    'SE': 28, 'SP': 35, 'TO': 17,
+}
+
+# Regiões geográficas oficiais (IBGE), para permitir marcar de uma vez todas
+# as UFs de uma região na interface (análise regional).
+REGIOES_BR = {
+    'Norte': ['AC', 'AP', 'AM', 'PA', 'RO', 'RR', 'TO'],
+    'Nordeste': ['AL', 'BA', 'CE', 'MA', 'PB', 'PE', 'PI', 'RN', 'SE'],
+    'Centro-Oeste': ['DF', 'GO', 'MT', 'MS'],
+    'Sudeste': ['ES', 'MG', 'RJ', 'SP'],
+    'Sul': ['PR', 'RS', 'SC'],
+}
+
+
+def get_regiao_of_uf(uf):
+    """Devolve o nome da região de uma UF, ou None se não encontrada."""
+    sigla = str(uf).strip().upper()
+    for regiao, ufs in REGIOES_BR.items():
+        if sigla in ufs:
+            return regiao
+    return None
+
+
+def _normalize_cities(city_code):
+    """Aceita '', '420540', ['420540', '410690'] etc. e devolve lista de códigos
+    (strings não vazias, sem duplicatas, preservando a ordem).
+
+    Espelha `datasus_engine._normalize_ufs` — necessário porque o filtro por
+    município passou a aceitar 1 ou mais códigos (análise multi-município).
+    """
+    if not city_code:
+        return []
+    candidatos = [city_code] if isinstance(city_code, str) else list(city_code)
+    vistos, saida = set(), []
+    for c in candidatos:
+        s = str(c).strip()
+        if s and s not in vistos:
+            vistos.add(s)
+            saida.append(s)
+    return saida
+
+
+def _city_cache_key(city_code):
+    """String estável para compor nomes de arquivo de cache a partir de 1+ códigos."""
+    cidades = _normalize_cities(city_code)
+    return "+".join(cidades) if cidades else "Todos"
+
 
 def _optimize_dtypes(df):
     """
@@ -773,7 +859,7 @@ def fetch_and_convert_dbc_stream(ftp, filename, dbf_name, columns_to_keep=None,
             with open(filename, 'wb') as f:
                 ftp.retrbinary(f"RETR {filename}", f.write)
 
-            if progress_callback: progress_callback(0.5, f"Convertendo {filename} → DBF...")
+            if progress_callback: progress_callback(0.5, f"Convertendo {filename} -> DBF...")
             _decompress_dbc(filename, dbf_name)
             if os.path.exists(filename): os.remove(filename)
 
@@ -783,16 +869,16 @@ def fetch_and_convert_dbc_stream(ftp, filename, dbf_name, columns_to_keep=None,
         all_cols = table.field_names
         keep = [c for c in columns_to_keep if c in all_cols] if columns_to_keep else list(all_cols)
 
-        city = city_code.strip() if city_code else ""
-        muni_field = next((c for c in MUNI_FILTER_FIELDS if c in all_cols), None) if city else None
+        cidades = _normalize_cities(city_code)
+        muni_field = next((c for c in MUNI_FILTER_FIELDS if c in all_cols), None) if cidades else None
 
         frames = []
         batch = []
         for rec in table:
             # Filtro geográfico (município) — aplicado direto no registro
-            if muni_field and city:
+            if muni_field and cidades:
                 val = rec.get(muni_field)
-                if val is None or not str(val).startswith(city):
+                if val is None or not any(str(val).startswith(c) for c in cidades):
                     continue
             # Filtro por CID/morbidade — aplicado no registro completo
             if cid_matcher is not None and not cid_matcher(rec):
@@ -893,7 +979,7 @@ def download_preview_datasus(system_code, uf, year_start, year_end, month="Todos
     # Primeiro verificar cache parquet — se existe, lê preview instantâneo
     cache_dir = "data"
     os.makedirs(cache_dir, exist_ok=True)
-    city_str = city_code if city_code.strip() else "Todos"
+    city_str = _city_cache_key(city_code)
     cache_file = os.path.join(cache_dir, f"{system_code}_{uf}_{year_start}-{year_end}_{month}_{city_str}.parquet")
     
     if os.path.exists(cache_file):
@@ -998,9 +1084,68 @@ def download_preview_datasus(system_code, uf, year_start, year_end, month="Todos
 
 def load_full_datasus(system_code, uf, year_start, year_end, month="Todos", city_code="",
                       columns_to_keep=None, cid_filter=None, memory_efficient=False,
-                      progress_callback=None):
+                      progress_callback=None, batch_size=None, memory_limit=None):
     """
     FASE 2: Carrega o dataset COMPLETO, filtrando apenas as colunas selecionadas.
+
+    PONTO DE ENTRADA ÚNICO do download. Delega para `datasus_engine`, que usa
+    staging em Parquet + DuckDB com memória limitada (sem `pd.concat` de bases
+    inteiras) — é o que evita o Out-Of-Memory em bases grandes como o SIA.
+
+    A assinatura é mantida compatível com a versão anterior para que `app.py` e
+    os scripts de `custo_efetividade/` sigam funcionando sem alterações.
+
+    Parâmetros de memória (opcionais):
+        memory_efficient: aceito por compatibilidade — o motor JÁ é sempre
+            econômico em memória. Não tem mais efeito.
+        batch_size: registros por lote na conversão DBF -> Parquet. É o que
+            controla o pico de RAM da ingestão. Padrão: 50.000.
+        memory_limit: teto de RAM do DuckDB (ex.: "1GB"). Ao atingir, ele
+            derrama em disco. Padrão: "1GB".
+
+    Se o `duckdb` não estiver instalado, cai automaticamente no caminho legado
+    em pandas (`_load_full_datasus_legacy`) — funcional, porém mais lento e
+    mais faminto por RAM.
+    """
+    if year_end is None:
+        year_end = year_start
+
+    try:
+        from datasus_engine import load_full_datasus as _engine_load
+    except Exception as e:  # duckdb ausente ou erro de importação
+        print(f"Aviso: motor de memória controlada indisponível ({e}). "
+              f"Usando caminho legado em pandas (pode consumir muita RAM).")
+        return _load_full_datasus_legacy(
+            system_code, uf, year_start, year_end, month, city_code,
+            columns_to_keep, cid_filter, memory_efficient, progress_callback,
+        )
+
+    extra = {}
+    if batch_size is not None:
+        extra["batch_size"] = batch_size
+    if memory_limit is not None:
+        extra["memory_limit"] = memory_limit
+
+    return _engine_load(
+        system_code=system_code,
+        uf=uf,
+        year_start=year_start,
+        year_end=year_end,
+        month=month,
+        city_code=city_code,
+        columns_to_keep=columns_to_keep,
+        cid_filter=cid_filter,
+        memory_efficient=memory_efficient,
+        progress_callback=progress_callback,
+        **extra,
+    )
+
+
+def _load_full_datasus_legacy(system_code, uf, year_start, year_end, month="Todos", city_code="",
+                              columns_to_keep=None, cid_filter=None, memory_efficient=False,
+                              progress_callback=None):
+    """
+    FASE 2 (LEGADO): Carrega o dataset COMPLETO, filtrando apenas as colunas selecionadas.
     
     1. Se cache Parquet existe → lê do cache (filtra colunas)
     2. Senão → baixa do FTP, processa, salva cache, retorna filtrado
@@ -1024,7 +1169,7 @@ def load_full_datasus(system_code, uf, year_start, year_end, month="Todos", city
     cache_dir = "data"
     os.makedirs(cache_dir, exist_ok=True)
     
-    city_str = city_code if city_code.strip() else "Todos"
+    city_str = _city_cache_key(city_code)
 
     # ---------- MODO ECONÔMICO (streaming) ----------
     if memory_efficient:
@@ -1130,7 +1275,7 @@ def _apply_cid_filter(df, system_code, cid_filter, progress_callback=None):
     if progress_callback: progress_callback(0.95, "Aplicando filtro por CID/morbidade...")
     n_antes = len(df)
     df = filter_dataframe_by_cid(df, system_code, cid_filter)
-    print(f"Filtro CID: {n_antes} → {len(df)} linhas.")
+    print(f"Filtro CID: {n_antes} -> {len(df)} linhas.")
     return df
 
 
@@ -1258,13 +1403,18 @@ def download_and_process_datasus(system_code, uf, year_start, year_end, month="T
                 df_final = df_final[df_final[dt_cols[0]].astype(str).str[2:4] == month]
         
         # No modo econômico o filtro de município já foi aplicado em streaming
-        if not memory_efficient and city_code.strip() != "":
+        cidades = _normalize_cities(city_code)
+        if not memory_efficient and cidades:
             mun_cols = [c for c in df_final.columns if c in [
                 'CODMUNRES', 'MUNRES', 'CODMUNOCOR', 'CODUFMUN', 'CODMUNGE',
                 'ID_MUNICIP', 'ID_MUNIRES', 'CO_MUNIRES', 'MUNIC_RES'
             ]]
             if mun_cols:
-                df_final = df_final[df_final[mun_cols[0]].astype(str).str.startswith(city_code.strip())]
+                serie = df_final[mun_cols[0]].astype(str)
+                mask = pd.Series(False, index=df_final.index)
+                for c in cidades:
+                    mask |= serie.str.startswith(c)
+                df_final = df_final[mask]
         
         categorias = df_final.select_dtypes(include=['category', 'object']).columns
         if len(categorias) > 0:
@@ -1285,7 +1435,7 @@ def get_datasus_head(system_code, uf, year_start, year_end=None, month="Todos", 
     if year_end is None: year_end = year_start
     cache_dir = "data"
     os.makedirs(cache_dir, exist_ok=True)
-    city_str = city_code if city_code.strip() else "Todos"
+    city_str = _city_cache_key(city_code)
     cache_file = os.path.join(cache_dir, f"{system_code}_{uf}_{year_start}-{year_end}_{month}_{city_str}.parquet")
     
     if os.path.exists(cache_file):

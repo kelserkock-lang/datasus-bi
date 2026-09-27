@@ -11,6 +11,7 @@ A filtragem é aplicada nos campos de diagnóstico de cada sistema DataSUS.
 
 import csv
 import os
+import unicodedata
 from functools import lru_cache
 
 # ================================================================
@@ -117,7 +118,13 @@ def cid10_label(code, name):
     return f"{code} — {name}"
 
 
-def search_cid10(query, limit=300):
+def _strip_accents(text):
+    """Remove acentos de um texto para permitir busca por nome sem acentuação."""
+    normalized = unicodedata.normalize("NFKD", text)
+    return "".join(ch for ch in normalized if not unicodedata.combining(ch))
+
+
+def search_cid10(query, limit=1500):
     """
     Busca códigos CID-10 por código ou por nome da doença.
 
@@ -128,6 +135,9 @@ def search_cid10(query, limit=300):
     Returns:
         list[tuple[str, str]]: lista de (código, nome) que casam com a busca.
         Se query for vazio, retorna os primeiros `limit` itens do catálogo.
+        Prioriza matches por código (prefixo) antes dos matches por nome, para
+        que buscas amplas por nome não "escondam" resultados de letras
+        posteriores do alfabeto (ex: só aparecerem CIDs de A/B).
     """
     catalog = load_cid10_catalog()
     q = _normalize(query) if query else ""
@@ -135,14 +145,20 @@ def search_cid10(query, limit=300):
         return catalog[:limit]
 
     # busca por prefixo de código e por substring no nome (sem acento/caixa)
-    q_name = query.strip().lower()
-    results = []
+    q_name = _strip_accents(query.strip().lower())
+    code_matches = []
+    name_matches = []
     for code, name in catalog:
-        if code.startswith(q) or q_name in name.lower():
-            results.append((code, name))
-            if len(results) >= limit:
-                break
-    return results
+        if code.startswith(q):
+            code_matches.append((code, name))
+        elif q_name and q_name in _strip_accents(name.lower()):
+            name_matches.append((code, name))
+    return (code_matches + name_matches)[:limit]
+
+
+def count_cid10_matches(query):
+    """Retorna o número total de CIDs que casam com a busca, sem truncar."""
+    return len(search_cid10(query, limit=len(load_cid10_catalog()) or 1))
 
 
 # ================================================================
